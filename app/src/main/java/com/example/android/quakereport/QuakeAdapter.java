@@ -1,5 +1,6 @@
 package com.example.android.quakereport;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
@@ -8,11 +9,17 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
 
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+
 
 import static com.example.android.quakereport.R.layout.quake_list_item;
 
 public class QuakeAdapter extends ArrayAdapter<Quake> {
+
+    private static final String LOCATION_SEPARATOR = " of ";
 
     QuakeAdapter(Context context, ArrayList<Quake> quakes) {
         super(context, 0, quakes);
@@ -21,10 +28,10 @@ public class QuakeAdapter extends ArrayAdapter<Quake> {
     /**
      * Provides a view for an AdapterView (ListView, GridView, etc.)
      *
-     * @param position The position in the list of data that should be displayed in the
-     *                 list item view.
+     * @param position    The position in the list of data that should be displayed in the
+     *                    list item view.
      * @param convertView The recycled view to populate.
-     * @param parent The parent ViewGroup that is used for inflation.
+     * @param parent      The parent ViewGroup that is used for inflation.
      * @return The View for the position in the AdapterView.
      */
     @NonNull
@@ -32,7 +39,7 @@ public class QuakeAdapter extends ArrayAdapter<Quake> {
     public View getView(int position, View convertView, @NonNull ViewGroup parent) {
         // Check if the existing view is being reused, otherwise inflate the view
         View listItemView = convertView;
-        if(listItemView == null) {
+        if (listItemView == null) {
             listItemView = LayoutInflater.from(getContext()).inflate(
                     quake_list_item, parent, false);
         }
@@ -42,24 +49,81 @@ public class QuakeAdapter extends ArrayAdapter<Quake> {
 
         // Find the TextView in the quake_list_item.xml layout with the ID mag_text_name
         TextView magTextView = listItemView.findViewById(R.id.mag_text_view);
-        // Get the magnitude from the current Quake object and
-        // set this text on the name TextView
-        magTextView.setText(currentQuake.getMagnitude());
 
-        // Find the TextView in the lquake_ist_item.xml layout with the ID place_text_view
-        TextView placeTextView = listItemView.findViewById(R.id.place_text_view);
-        // Get the place from the current Quake object and
-        // set this text on the number TextView
-       placeTextView.setText(currentQuake.getLocation());
+        // Format the magnitude to show 1 decimal place
+        double mag = currentQuake.getMagnitude();
+        String formattedMagnitude = formatMagnitude(mag);
+        // Display the magnitude of the current earthquake in that TextView
+        magTextView.setText(formattedMagnitude);
 
-        // Find the date in the quake_list_item.xml layout with the ID time_text_view
-        TextView dateTextView =  listItemView.findViewById(R.id.time_text_view);
-        // Get the datefrom the current Quake object and
-        // set the text to time
-        dateTextView.setText(currentQuake.getTime());
 
+
+        String originalLocation = currentQuake.getLocation();
+        String primaryLocation;
+        String locationOffset;
+
+        if (originalLocation.contains(LOCATION_SEPARATOR)) {
+            String[] parts = originalLocation.split(LOCATION_SEPARATOR);
+            locationOffset = parts[0] + LOCATION_SEPARATOR;
+            primaryLocation = parts[1];
+        } else {
+            locationOffset = getContext().getString(R.string.near_the);
+            primaryLocation = originalLocation;
+        }
+
+        TextView primaryLocationView = listItemView.findViewById(R.id.primary_location);
+        primaryLocationView.setText(primaryLocation);
+
+        TextView locationOffsetView = listItemView.findViewById(R.id.location_offset);
+        locationOffsetView.setText(locationOffset);
+
+        // Create a new Date object from the time in milliseconds of the earthquake
+        Date dateObject = null;
+        if (currentQuake != null) {
+            dateObject = new Date(currentQuake.getTimeInMilliseconds());
+        }
+
+        // Find the TextView with view ID date
+        TextView dateView = listItemView.findViewById(R.id.date);
+        // Format the date string (i.e. "Mar 3, 1984")
+        String formattedDate = formatDate(dateObject);
+        // Display the date of the current earthquake in that TextView
+        dateView.setText(formattedDate);
+
+        // Find the TextView with view ID time
+        TextView timeView = listItemView.findViewById(R.id.time);
+        // Format the time string (i.e. "4:30PM")
+        String formattedTime = formatTime(dateObject);
+        // Display the time of the current earthquake in that TextView
+        timeView.setText(formattedTime);
         // Return the whole list item layout (containing 3TextViews )
         // so that it can be shown in the ListView
         return listItemView;
+    }
+
+    /**
+     * Return the formatted magnitude string showing 1 decimal place (i.e. "3.2")
+     * from a decimal magnitude value.
+     */
+    private String formatMagnitude(double magnitude){
+        DecimalFormat magnitudeFormat = new DecimalFormat("0.0");
+        return magnitudeFormat.format(magnitude);
+    }
+
+
+    /**
+     * Return the formatted date string (i.e. "Mar 3, 1984") from a Date object.
+     */
+    private String formatDate(Date dateObject) {
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("LLL dd, yyyy");
+        return dateFormat.format(dateObject);
+    }
+
+    /**
+     * Return the formatted time string (i.e. "4:30 PM") from a Date object.
+     */
+    private String formatTime(Date dateObject) {
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a");
+        return timeFormat.format(dateObject);
     }
 }
